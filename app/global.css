@@ -1,0 +1,109 @@
+/* System fonts for speed, dark theme base */
+:root {
+  --bg: #0c1020;
+  --card: #131a33;
+  --text: #e6e8ef;
+  --muted: #9aa3b2;
+  --border: #2a3358;
+  --accent: #8ab4ff;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+
+.app-body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  padding: 16px;
+}
+
+a { color: var(--accent); }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.select, .button {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.button {
+  cursor: pointer;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* Toolbox (desktop default) */
+.toolbox {
+  position: fixed;
+  right: 24px;
+  top: 110px;
+  width: 300px;
+  background: #0f1530;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.35);
+  z-index: 50;
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+  .app-body { padding: 10px; }
+  h1 { font-size: 18px; margin: 6px 0 10px; }
+  .grid-2 { grid-template-columns: 1fr; }
+  .select, .button { padding: 12px 14px; font-size: 16px; } /* bigger tap targets */
+
+  /* Toolbox becomes bottom sheet */
+  .toolbox {
+    position: fixed;
+    right: 0;
+    left: 0;
+    bottom: 0;
+    top: auto;
+    width: 100%;
+    max-height: 65vh;
+    border-radius: 16px 16px 0 0;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0) + 12px);
+    transform: translateY(100%);
+    transition: transform 220ms ease;
+  }
+  .toolbox.open {
+    transform: translateY(0);
+  }
+
+  .toolbox-toggle {
+    position: fixed;
+    right: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0));
+    z-index: 60;
+    padding: 12px 14px;
+    border-radius: 999px;
+    background: #16204a;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+}
