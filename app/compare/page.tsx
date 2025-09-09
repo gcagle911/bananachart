@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { SimpleLine } from "../../components/SimpleLine";
 import { fetchOneMinuteNDJSON } from "../../lib/fetch1m";
-import { mergeByTimestamp } from "../../lib/merge";
 import { sma } from "../../lib/ma";
 
 const BUCKET = "bananazone";
@@ -24,7 +23,6 @@ function todayUTC() {
   const day = `${d.getUTCDate()}`.padStart(2, "0");
   return `${y}-${m}-${day}`;
 }
-
 function tag(exchange: string, levelKey: string, win: number) {
   return `${exchange}_${levelKey}_MA${win}`;
 }
@@ -67,42 +65,44 @@ export default function ComparePage() {
         }));
       }
 
-      const merged = (() => {
-        const arrays = Object.values(normalized);
-        if (arrays.length === 0) return [];
-        if (arrays.length === 1) return arrays[0];
-        const maps: any[] = arrays.map(arr => {
-          const m = new Map<string, any>();
-          for (const r of arr) m.set(r.t, r);
-          return m;
+      const arrays = Object.values(normalized);
+      let merged: any[] = [];
+      if (arrays.length === 1) {
+        merged = arrays[0];
+      } else if (arrays.length === 2) {
+        const [a, b] = arrays;
+        const ma = new Map(a.map((r) => [r.t, r]));
+        const mb = new Map(b.map((r) => [r.t, r]));
+        const keys = new Set<string>([...ma.keys(), ...mb.keys()]);
+        merged = [...keys].sort().map((t) => {
+          const ra = ma.get(t);
+          const rb = mb.get(t);
+          return {
+            t,
+            coinbase_mid: ra?.mid ?? null,
+            kraken_mid: rb?.mid ?? null,
+            coinbase_spread_L5_pct: ra?.spread_L5_pct ?? null,
+            coinbase_spread_L50_pct: ra?.spread_L50_pct ?? null,
+            coinbase_spread_L100_pct: ra?.spread_L100_pct ?? null,
+            kraken_spread_L5_pct: rb?.spread_L5_pct ?? null,
+            kraken_spread_L50_pct: rb?.spread_L50_pct ?? null,
+            kraken_spread_L100_pct: rb?.spread_L100_pct ?? null,
+            coinbase_vb50: ra?.vol_L50_bids ?? null,
+            coinbase_va50: ra?.vol_L50_asks ?? null,
+            kraken_vb50: rb?.vol_L50_bids ?? null,
+            kraken_va50: rb?.vol_L50_asks ?? null,
+          };
         });
-        const allKeys = new Set<string>();
-        maps.forEach(m => m.forEach((_v: any, k: string) => allKeys.add(k)));
-        const out: any[] = [];
-        for (const t of Array.from(allKeys).sort()) {
-          const row: any = { t };
-          for (let i = 0; i < maps.length; i++) {
-            const ex = names[i];
-            const r = maps[i].get(t);
-            if (!r) continue;
-            row[`${ex}_mid`] = r.mid ?? null;
-            row[`${ex}_spread_L5_pct`] = r.spread_L5_pct ?? null;
-            row[`${ex}_spread_L50_pct`] = r.spread_L50_pct ?? null;
-            row[`${ex}_spread_L100_pct`] = r.spread_L100_pct ?? null;
-            row[`${ex}_vb50`] = r.vol_L50_bids ?? null;
-            row[`${ex}_va50`] = r.vol_L50_asks ?? null;
-          }
-          out.push(row);
-        }
-        return out;
-      })();
+      }
 
-      for (const ex of Object.keys(normalized)) {
+      for (const ex of ["coinbase", "kraken"]) {
+        if (!exSel[ex]) continue;
         for (const lvl of LEVELS) {
+          if (!lvlSel[lvl.key]) continue;
           const col = `${ex}_${lvl.field}`;
           const series = merged.map((r) => ({ t: r.t, v: r[col] ?? null }));
           for (const win of MA_WINDOWS) {
-            if (!maSel[win] || !lvlSel[lvl.key]) continue;
+            if (!maSel[win]) continue;
             const sm = sma(series, win);
             for (let i = 0; i < merged.length; i++) {
               merged[i][tag(ex, lvl.key, win)] = sm[i].v;
@@ -135,7 +135,7 @@ export default function ComparePage() {
         if (!lvlSel[lvl.key]) continue;
         for (const win of MA_WINDOWS) {
           if (!maSel[win]) continue;
-          items.push({ dataKey: tag(ex, lvl.key, win), label: `${ex.toUpperCase()} ${lvl.key} MA${win}` });
+          items.push({ dataKey: `${ex}_${lvl.key}_MA${win}`, label: `${ex.toUpperCase()} ${lvl.key} MA${win}` });
         }
       }
     }
@@ -144,10 +144,12 @@ export default function ComparePage() {
 
   return (
     <main style={{ maxWidth: 1280, margin: "0 auto" }}>
+      {/* HEADER with links to Single + Pro */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
         <h1 style={{ marginBottom: 12 }}>Compare: Coinbase vs Kraken (1‑minute)</h1>
         <div style={{ display: "flex", gap: 12 }}>
           <Link href="/" style={{ color: "#8ab4ff", textDecoration: "underline" }}>Single view →</Link>
+          <Link href="/pro" style={{ color: "#8ab4ff", textDecoration: "underline" }}>Pro view →</Link>
         </div>
       </div>
 
@@ -196,20 +198,8 @@ export default function ComparePage() {
       {loading && <div style={{ opacity: 0.8, marginBottom: 8 }}>Loading…</div>}
 
       <div style={{ background: "#131a33", padding: 12, borderRadius: 12 }}>
-        <SimpleLine
-          title={`${asset} — Spread % of mid (SMA)`}
-          data={data}
-          xKey="t"
-          series={spreadSeries}
-          height={420}
-        />
+        <SimpleLine title={`${asset} — Spread % of mid (SMA)`} data={data} xKey="t" series={spreadSeries} height={420} />
       </div>
-
-      <p style={{ marginTop: 12, opacity: 0.8 }}>
-        Sources:&nbsp;
-        {exSel.coinbase ? <a style={{ color: "#8ab4ff" }} href={urlCB} target="_blank">Coinbase</a> : "Coinbase (off)"} &nbsp;|&nbsp;
-        {exSel.kraken ? <a style={{ color: "#8ab4ff" }} href={urlKR} target="_blank">Kraken</a> : "Kraken (off)"}
-      </p>
     </main>
   );
 }
