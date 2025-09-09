@@ -41,7 +41,7 @@ export default function Page() {
         spreadL100: r.spread_L100_pct,
         volBid50: r.vol_L50_bids,
         volAsk50: r.vol_L50_asks,
-        mid: r.mid
+        mid: r.mid,
       }));
       setData(points);
     } catch (e: any) {
@@ -61,9 +61,13 @@ export default function Page() {
 
   return (
     <main style={{ maxWidth: 1200, margin: "0 auto" }}>
+      {/* HEADER with links to Compare + Pro */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h1 style={{ marginBottom: 12 }}>Order Book Spread (1‑minute)</h1>
-        <Link href="/compare" style={{ color: "#8ab4ff", textDecoration: "underline" }}>Compare view →</Link>
+        <div style={{ display: "flex", gap: 12 }}>
+          <Link href="/compare" style={{ color: "#8ab4ff", textDecoration: "underline" }}>Compare view →</Link>
+          <Link href="/pro" style={{ color: "#8ab4ff", textDecoration: "underline" }}>Pro view →</Link>
+        </div>
       </div>
 
       <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
@@ -92,7 +96,7 @@ export default function Page() {
           series={[
             { dataKey: "spreadL5", label: "L5 %" },
             { dataKey: "spreadL50", label: "L50 %" },
-            { dataKey: "spreadL100", label: "L100 %" }
+            { dataKey: "spreadL100", label: "L100 %" },
           ]}
           height={360}
         />
@@ -100,13 +104,7 @@ export default function Page() {
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 12 }}>
         <div style={{ background: "#131a33", padding: 12, borderRadius: 12 }}>
-          <SimpleLine
-            title="Mid price"
-            data={data}
-            xKey="t"
-            series={[{ dataKey: "mid", label: "mid" }]}
-            height={220}
-          />
+          <SimpleLine title="Mid price" data={data} xKey="t" series={[{ dataKey: "mid", label: "mid" }]} height={220} />
         </div>
         <div style={{ background: "#131a33", padding: 12, borderRadius: 12 }}>
           <SimpleLine
@@ -115,16 +113,14 @@ export default function Page() {
             xKey="t"
             series={[
               { dataKey: "volBid50", label: "vol L50 bids" },
-              { dataKey: "volAsk50", label: "vol L50 asks" }
+              { dataKey: "volAsk50", label: "vol L50 asks" },
             ]}
             height={220}
           />
         </div>
       </div>
 
-      <p style={{ marginTop: 12, opacity: 0.8 }}>
-        Data source: {url}
-      </p>
+      <p style={{ marginTop: 12, opacity: 0.8 }}>Data source: {url}</p>
     </main>
   );
 }
